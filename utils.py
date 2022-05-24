@@ -22,7 +22,7 @@ def csv_reader():
         data = csv.DictReader(file)
         for col in data:
             keywords.append(col["keywords"])
-    return keywords
+    return keywords[:5]
 
 
 def csv_writer(data_obj):
