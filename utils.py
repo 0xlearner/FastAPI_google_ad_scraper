@@ -11,7 +11,7 @@ dt_obj = datetime.now(pytz.timezone("Australia/Sydney"))
 time_stamp = datetime.strftime(dt_obj, "%Y-%m-%d %H:%M:%S")
 
 temp_data = f"temp_data.csv"
-clean_file = f"google_ads_urls_{time_stamp}.csv"
+clean_file = f"google_ads_urls.csv"
 
 
 def csv_reader():

@@ -1,0 +1,76 @@
+<html>
+<head>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css" integrity="sha512-P5MgMn1jBN01asBgU0z60Qk4QxiXo86+wlFahKrsQf37c9cro517WzVSPPV1tDKzhku2iJ2FVgL67wG03SGnNA==" crossorigin="anonymous" />
+</head>
+<body>
+    <form method="post" action="/api/v1/scraped_csv" enctype="multipart/form-data">
+        <input name="csv_file" type="file" multiple>
+        <button id='myButton'>Scrape</button>
+    </form>
+    <div class="progress">
+        <div id='myProgress' class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/js/bootstrap.min.js" integrity="sha512-XKa9Hemdy1Ui3KSGgJdgMyYlUg1gM+QhL6cnlyTe2qzMCYm4nAZ1PsVerQzTTXzonUR+dmswHqgJPuwCq1MaAg==" crossorigin="anonymous"></script>
+<script type="text/javascript">
+const button = document.getElementById('myButton')
+const value = document.getElementById('myValue')
+const progressbar = document.getElementById('myProgress')
+
+function update_bar(value) {
+  progressbar.setAttribute("aria-valuenow", value);
+  progressbar.style.width = value + '%';
+
+  // progress bar should have label
+  progressbar.innerHTML = value + '%';
+}
+
+button.addEventListener('click', function(e) {
+
+  // Reset progress bar incase of re-click.
+  update_bar(0);
+
+
+  fetch(`${window.origin}/api/v1/scraped_csv`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      value: value.value
+    }),
+  }).then((r) => {
+    r.json().then((data) => {
+
+      // The job.id returned from the server once enqueued:
+      job_id = data['job_id'];
+
+      const source = new EventSource("/progress/" + job_id);
+      
+      source.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        console.log(data);
+
+        update_bar(data['value']);
+
+        if (data['status'] == 'finished') {
+
+          // Manually set progress to 100 when job is finished, as
+          // actual progress value may be less from last read.
+
+          update_bar(100);
+
+          source.close();
+
+          // Just write the result which is included in the last streamed item
+          // to the page
+          document.getElementById('result').textContent = data['result'];
+        }
+      }
+
+    })
+  });
+
+});
+</script>
+</body></html>

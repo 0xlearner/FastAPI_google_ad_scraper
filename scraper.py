@@ -115,12 +115,13 @@ async def parse_page(html):
 
     for ad in content.find_all("a", {"class": "sh-np__click-target"}):
         try:
-            r = httpx.get(
-                "https://www.google.com" + ad["href"], headers=headers, timeout=None
-            )
-            url = str(r.url)
-            ad_urls.append(urlparse(url).netloc)
-            print(urlparse(url).netloc)
+            async with httpx.AsyncClient() as client:
+                r = await client.get(
+                    "https://www.google.com" + ad["href"], headers=headers, timeout=None
+                )
+                url = str(r.url)
+                ad_urls.append(urlparse(url).netloc)
+                print(urlparse(url).netloc)
         except:
             pass
 
