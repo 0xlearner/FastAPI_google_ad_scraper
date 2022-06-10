@@ -4,14 +4,31 @@ from bs4 import BeautifulSoup
 from decouple import config
 from urllib.parse import urlencode
 from urllib.parse import urlparse
+import urllib.request
 import os
+import json
+import logging
 
 from utils import csv_reader, csv_writer
 
 SCRAPERAPI_KEY = config("API_KEY")
 NUM_RETRIES = 3
 
+logging.basicConfig(filename="scraper.log",
+                    format='%(asctime)s %(message)s',
+                    filemode='w')
 
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+# opener = urllib.request.build_opener(
+#         urllib.request.ProxyHandler(
+#             {'http': 'http://lum-customer-c_4ae025b1-zone-data_center-country-au:15kcfdu564mt@zproxy.lum-superproxy.io:22225',
+#             'https': 'http://lum-customer-c_4ae025b1-zone-data_center-country-au:15kcfdu564mt@zproxy.lum-superproxy.io:22225'}))
+
+# proxy_details = opener.open('http://lumtest.com/myip.json').read()
+# proxy_dictionary = json.loads(proxy_details)
+# proxy = proxy_dictionary["ip"] + ':' + str(proxy_dictionary["asn"]["asnum"])
 base_url = "https://www.google.com/search?"
 
 headers = {
@@ -77,12 +94,12 @@ def get_scraperapi_url(url):
 
 
 async def log_request(request):
-    print(f"Request: {request.method} {request.url}")
+    logger.debug(f"Request: {request.method} {request.url}")
 
 
 async def log_response(response):
     request = response.request
-    print(f"Response: {request.method} {request.url} - Status: {response.status_code}")
+    logger.debug(f"Response: {request.method} {request.url} - Status: {response.status_code}")
 
 
 async def fetch_pages(keyword, page_no):
@@ -93,19 +110,21 @@ async def fetch_pages(keyword, page_no):
     else:
         params = pagination_params
 
-        params["start"] = str(page_no * 60)
+        params["start"] = str(page_no * 10)
 
         params["q"] = keyword
         url = base_url + urlencode(params)
+    try:
+        async with httpx.AsyncClient(
+        headers=headers, event_hooks={"request": [log_request], "response": [log_response]}
+        ) as client:
+            response = await client.get(
+                get_scraperapi_url(url), timeout=180
+            )
 
-    async with httpx.AsyncClient(
-        event_hooks={"request": [log_request], "response": [log_response]}
-    ) as client:
-        response = await client.get(
-            get_scraperapi_url(url), headers=headers, timeout=None
-        )
-
-        return response
+            return response
+    except Exception as e:
+        logger.error(e)
 
 
 async def parse_page(html):
@@ -115,13 +134,13 @@ async def parse_page(html):
 
     for ad in content.find_all("a", {"class": "sh-np__click-target"}):
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(headers=headers) as client:
                 r = await client.get(
-                    "https://www.google.com" + ad["href"], headers=headers, timeout=None
+                    "https://www.google.com" + ad["href"]
                 )
                 url = str(r.url)
                 ad_urls.append(urlparse(url).netloc)
-                print(urlparse(url).netloc)
+                logger.debug(urlparse(url).netloc)
         except:
             pass
 
@@ -145,16 +164,24 @@ async def run_scraper(file_path):
                 except httpx.ConnectError:
                     response = ""
             if response.status_code == 200:
-                tasks.append(asyncio.create_task(parse_page(response.content)))
+                 tasks.append(asyncio.create_task(parse_page(response.content)))
 
     ad_data = await asyncio.gather(*tasks)
 
+    logger.info('Done!')
     await csv_writer(ad_data[0])
+    logger.info('csv created.. Please refresh the page to download the csv.')
+    
 
-    return ad_data
+    return ad_data[0]
+
+def get_google_ad_urls(file_path):
+    asyncio.run(run_scraper(file_path))
 
 
 if __name__ == "__main__":
-    file_path = os.path.abspath("keywords_for_scraper.csv")
+    file_path = os.path.abspath("temp/temp.csv")
+    # run_scraper(file_path)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(run_scraper(file_path))
+    

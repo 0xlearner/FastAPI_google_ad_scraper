@@ -1,0 +1,31 @@
+.window {
+    height: 300px;
+    background: #fff;
+}
+
+.log {
+    background-color: #1c1c1c;
+    margin-top: 0;
+    margin-bottom: 0;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    font-size: 12px;
+    padding: 16px;
+    overflow: auto;
+    line-height: 1.45;
+    border-radius: 3px;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    color: #DDD;
+}
+
+.log-container {
+    flex-basis: 100%;
+}
+
+.autoscroll {
+    flex-basis: auto;
+    display: flex;
+    flex-direction: column-reverse;
+    height: calc(100% - 56px);
+    overflow-y: auto;
+}

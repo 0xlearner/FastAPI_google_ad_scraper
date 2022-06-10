@@ -87,8 +87,10 @@ url = base_url + urllib.parse.urlencode(params)
 import urllib.request
     opener = urllib.request.build_opener(
         urllib.request.ProxyHandler(
-            {'http': 'http://lum-customer-c_4ae025b1-zone-data_center-country-au:15kcfdu564mt@zproxy.lum-superproxy.io:22225',
-            'https': 'http://lum-customer-c_4ae025b1-zone-data_center-country-au:15kcfdu564mt@zproxy.lum-superproxy.io:22225'}))
+            {'http://': 'http://lum-customer-c_4ae025b1-zone-data_center-country-au:15kcfdu564mt@zproxy.lum-superproxy.io:22225',
+            'https://': 'http://lum-customer-c_4ae025b1-zone-data_center-country-au:15kcfdu564mt@zproxy.lum-superproxy.io:22225'}))
+
+req = httpx.get(url, headers=headers, proxies={'http://': 'http://lum-customer-c_4ae025b1-zone-data_center-country-au:15kcfdu564mt@zproxy.lum-superproxy.io:22225'})
 
 opener.addheaders = _headers
 
